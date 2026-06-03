@@ -6,6 +6,7 @@ import AddGameModal from "../../components/games/AddGameModal";
 import GameCard from "../../components/games/GameCard";
 import { useAuth } from "../../contexts/AuthContext";
 import { firestore } from "../../firebaseConfig";
+import { pickAndUploadGameImage } from "../../services/uploadGameImage"; // NOVI IMPORT
 import type { Game } from "../../types/game";
 
 export default function GamesScreen() {
@@ -20,7 +21,10 @@ export default function GamesScreen() {
   const [gameImageUrl, setGameImageUrl] = useState("");
   const [gameRoute, setGameRoute] = useState(""); 
 
-  // Učitavanje igara iz baze [cite: 318-331]
+  //Stanje za učitavanje slike
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Učitavanje igara iz baze
   useEffect(() => {
     const fetchGames = async () => {
       try {
@@ -38,7 +42,23 @@ export default function GamesScreen() {
     fetchGames();
   }, []); 
 
-  // Funkcija za dodavanje nove igre s DEBUG logovima [cite: 338-362]
+  //Funkcija za odabir i upload slike
+  const handlePickImage = async () => {
+    try {
+      setUploadingImage(true);
+      const publicUrl = await pickAndUploadGameImage();
+      if (publicUrl) {
+        setGameImageUrl(publicUrl);
+        Alert.alert("Uspjeh", "Slika je odabrana i spremna.");
+      }
+    } catch (error: any) {
+      Alert.alert("Greška", error.message ?? "Upload slike nije uspio.");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  //Funkcija za dodavanje nove igre s DEBUG logovima
   const handleAddGame = async () => {
     console.log("--- Pokušaj dodavanja igre ---");
 
@@ -56,7 +76,7 @@ export default function GamesScreen() {
 
     if (!gameTitle || !gameDescription || !gameImageUrl || !gameRoute) {
       console.log("Greška: Nedostaju podaci u poljima");
-      return Alert.alert("Info", "Molimo popunite sva polja, uključujući i rutu."); 
+      return Alert.alert("Info", "Molimo popunite sva polja, odaberite sliku i unesite rutu."); 
     }
     
     try {
@@ -111,19 +131,20 @@ export default function GamesScreen() {
         contentContainerStyle={styles.listContent}
       />
       
-      <AddGameModal 
-        visible={modalVisible} 
-        title={gameTitle} 
-        description={gameDescription} 
+      <AddGameModal
+        visible={modalVisible}
+        title={gameTitle}
+        description={gameDescription}
         imageUrl={gameImageUrl}
         route={gameRoute}
-        onChangeTitle={setGameTitle} 
-        onChangeDescription={setGameDescription} 
-        onChangeImageUrl={setGameImageUrl}
+        uploadingImage={uploadingImage}
+        onChangeTitle={setGameTitle}
+        onChangeDescription={setGameDescription}
         onChangeRoute={setGameRoute}
-        onClose={() => setModalVisible(false)} 
-        onSubmit={handleAddGame} 
-      /> 
+        onPickImage={handlePickImage}
+        onClose={() => setModalVisible(false)}
+        onSubmit={handleAddGame}
+      />
     </View>
   );
 } 
